@@ -1,0 +1,21 @@
+CustomerID,FirstName,LastName,Email,Phone,Address,City,State,ZipCode,Country
+1,John,Smith,john.smith@email.com,555-0101,123 Main St,Anytown,CA,12345,USA
+2,Jane,Doe,jane.doe@email.com,555-0102,456 Oak Ave,Otherville,NY,54321,USA
+3,Peter,Jones,peter.jones@email.com,555-0103,789 Pine Ln,Someplace,TX,67890,USA
+4,Mary,Johnson,mary.johnson@email.com,555-0104,101 Maple Dr,Anycity,FL,13579,USA
+5,David,Williams,david.williams@email.com,555-0105,212 Birch Rd,Newtown,IL,24680,USA
+6,Susan,Brown,susan.brown@email.com,555-0106,333 Cedar Ct,Oldtown,OH,97531,USA
+7,Michael,Davis,michael.davis@email.com,555-0107,444 Elm St,Smallville,GA,86420,USA
+8,Karen,Miller,karen.miller@email.com,555-0108,555 Spruce Ave,Bigcity,WA,19283,USA
+9,Robert,Wilson,robert.wilson@email.com,555-0109,666 Aspen Way,Largetown,CO,38475,USA
+10,Patricia,Moore,patricia.moore@email.com,555-0110,777 Willow Pl,Middletown,MI,27364,USA
+11,James,Taylor,james.taylor@email.com,555-0111,888 Redwood Blvd,Centerville,VA,56473,USA
+12,Jennifer,Anderson,jennifer.anderson@email.com,555-0112,999 Sequoia Cir,Northwood,OR,45362,USA
+13,William,Thomas,william.thomas@email.com,555-0113,111 Juniper St,Southville,AZ,65748,USA
+14,Linda,Jackson,linda.jackson@email.com,555-0114,222 Poplar Ave,Eastwood,NM,78659,USA
+15,Richard,White,richard.white@email.com,555-0115,333 Sycamore Rd,Westwood,UT,89567,USA
+16,Barbara,Harris,barbara.harris@email.com,555-0116,444 Magnolia Ct,Rivertown,NV,98765,USA
+17,Joseph,Martin,joseph.martin@email.com,555-0117,555 Cypress Ln,Laketown,MT,43210,USA
+18,Elizabeth,Thompson,elizabeth.thompson@email.com,555-0118,666 Palm Dr,Beachtown,SC,54321,USA
+19,Thomas,Garcia,thomas.garcia@email.com,555-0119,777 Orange St,Hilltop,NC,65432,USA
+20,Jessica,Martinez,jessica.martinez@email.com,555-0120,888 Lemon Ave,Valleydale,ND,76543,USA
