@@ -8,8 +8,8 @@ Copied from [@llamaindex/chat-ui Next.js Example](https://github.com/run-llama/c
 - Basic chat interface using `@llamaindex/chat-ui` components
 - API route that integrates with LlamaIndex and OpenAI
 - Fallback to fake streaming when API key is not available
-- TypeScript support
-- **Renders table data in chat**
+- TypeScript
+- **Renders table data in chat or canvas**
 
 ## Getting Started
 
@@ -29,6 +29,8 @@ Copied from [@llamaindex/chat-ui Next.js Example](https://github.com/run-llama/c
 
 4. Chat and get table data.
 ![screenshot](./public/Screenshot.png)
+5. Or get table in canvas
+![screenshot](./public/Screenshot_table-in-canvas.png)
 
 ## Project Structure
 
@@ -39,5 +41,6 @@ Copied from [@llamaindex/chat-ui Next.js Example](https://github.com/run-llama/c
 - `package.json` - Dependencies and scripts
 - `next.config.js` - Next.js configuration
 - `tsconfig.json` - TypeScript configuration
-- `app/api/chat/table_example/route.ts` - Chat API endpoint using LlamaIndex with table data
-- `components/` - Custom components for annotations
+- `app/api/chat/table_annotation_example/route.ts` - Chat API endpoint using LlamaIndex with table data in chat annotation
+- `app/api/chat/table_artifact_example/route.ts` - Chat API endpoint using LlamaIndex with table data in canvas
+- `components/` - Custom components for annotations and artifact
