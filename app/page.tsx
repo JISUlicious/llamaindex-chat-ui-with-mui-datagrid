@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import {
   ChatCanvas,
@@ -6,20 +6,22 @@ import {
   ChatMessage,
   ChatMessages,
   ChatSection,
+  toInlineAnnotation,
+  useChatCanvas,
   useChatUI,
-} from '@llamaindex/chat-ui'
-import { Message, useChat } from '@ai-sdk/react'
-import { WeatherAnnotation } from '../components/custom-weather'
-import { TableAnnotation } from '../components/custom-table'
-import { WikiCard } from '@/components/custom-wiki'
+} from "@llamaindex/chat-ui";
+import { Message, useChat } from "@ai-sdk/react";
+import { WeatherAnnotation } from "../components/custom-weather";
+import { WikiCard } from "../components/custom-wiki";
+import { TableArtifactViewer } from "@/components/custom-table-artifact";
 
 const initialMessages: Message[] = [
   {
-    id: '1',
-    content: 'Hello! How can I help you today???',
-    role: 'assistant',
+    id: "1",
+    content: "Hello! How can I help you today???",
+    role: "assistant",
   },
-]
+];
 
 export default function Page(): JSX.Element {
   return (
@@ -36,7 +38,7 @@ export default function Page(): JSX.Element {
         <ChatExample />
       </div>
     </div>
-  )
+  );
 }
 
 function ChatExample() {
@@ -47,13 +49,16 @@ function ChatExample() {
     // api: '/api/chat/edge',
 
     // uncomment this to try advanced example in app/api/chat/advanced/route.ts
-    // api: '/api/chat/advanced',
+    // api: "/api/chat/advanced",
 
-    // uncomment this to try table data example in app/api/chat/table_example/route.ts
-    api: 'api/chat/table_example',
+    // uncomment this to try table data example in app/api/chat/table_annotation_example/route.ts
+    // api: 'api/chat/table_annotation_example',
+
+    // uncomment this to try table data example in app/api/chat/table_artifact_example/route.ts
+    api: "api/chat/table_artifact_example",
 
     initialMessages,
-  })
+  });
 
   return (
     <ChatSection
@@ -75,13 +80,17 @@ function ChatExample() {
           </ChatInput>
         </div>
       </div>
-      <ChatCanvas className="w-full md:w-2/3" />
+      <ChatCanvas className="w-full md:w-2/3">
+        <ChatCanvas.DocumentArtifact />
+        <ChatCanvas.CodeArtifact />
+        <TableArtifactViewer />
+      </ChatCanvas>
     </ChatSection>
-  )
+  );
 }
 
 function CustomChatMessages() {
-  const { messages, isLoading, append } = useChatUI()
+  const { messages, isLoading, append } = useChatUI();
 
   return (
     <>
@@ -94,7 +103,7 @@ function CustomChatMessages() {
         >
           <ChatMessage.Avatar>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-sm font-semibold text-white">
-              {message.role === 'user' ? 'U' : 'AI'}
+              {message.role === "user" ? "U" : "AI"}
             </div>
           </ChatMessage.Avatar>
           <ChatMessage.Content isLoading={isLoading} append={append}>
@@ -108,12 +117,12 @@ function CustomChatMessages() {
 
             {/* annotation components under the Markdown text */}
             <WeatherAnnotation />
-            <TableAnnotation />
+            {/* <TableAnnotation /> */}
             <ChatMessage.Content.Source />
           </ChatMessage.Content>
           <ChatMessage.Actions />
         </ChatMessage>
       ))}
     </>
-  )
+  );
 }
