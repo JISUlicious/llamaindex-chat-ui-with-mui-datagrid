@@ -55,7 +55,9 @@ function ChatExample() {
     // api: 'api/chat/table_annotation_example',
 
     // uncomment this to try table data example in app/api/chat/table_artifact_example/route.ts
-    api: "api/chat/table_artifact_example",
+    // api: "api/chat/table_artifact_example",
+
+    api: "/api/chat/adk", // use the advanced chat example
 
     initialMessages,
   });
