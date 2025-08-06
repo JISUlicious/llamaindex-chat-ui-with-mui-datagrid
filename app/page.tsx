@@ -14,6 +14,9 @@ import { Message, useChat } from "@ai-sdk/react";
 import { WeatherAnnotation } from "../components/custom-weather";
 import { WikiCard } from "../components/custom-wiki";
 import { TableArtifactViewer } from "@/components/custom-table-artifact";
+import { useUser } from "@/contexts/userContext";
+import { useSession } from "@/contexts/sessionContext";
+import { useEffect, useState } from "react";
 
 const initialMessages: Message[] = [
   {
@@ -24,6 +27,7 @@ const initialMessages: Message[] = [
 ];
 
 export default function Page(): JSX.Element {
+  const {removeSessionId} = useSession();
   return (
     <div className="flex h-screen flex-col">
       <header className="w-full border-b p-4 text-center">
@@ -33,6 +37,15 @@ export default function Page(): JSX.Element {
         <p className="text-gray-600">
           A simple chat interface using @llamaindex/chat-ui
         </p>
+        <button
+          className="mt-2 rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+          onClick={() => {
+            removeSessionId();
+            console.log("Session ID removed. Please refresh the page.");
+          }}
+        >
+          Remove Session ID
+        </button>
       </header>
       <div className="min-h-0 flex-1">
         <ChatExample />
@@ -42,6 +55,14 @@ export default function Page(): JSX.Element {
 }
 
 function ChatExample() {
+  const agentName = process.env.NEXT_PUBLIC_AGENT_NAME;
+  if (!agentName) {
+    console.error("FATAL: NEXT_PUBLIC_AGENT_NAME environment variable is not set.");
+    return; 
+  }
+
+  const { user } = useUser();
+  const { sessionId, loading } = useSession();
   const handler = useChat({
     // api: '/api/chat',
 
@@ -60,7 +81,54 @@ function ChatExample() {
     api: "/api/chat/adk", // use the advanced chat example
 
     initialMessages,
+    body:{
+      appName: agentName,
+      userId: user?.id,
+      sessionId: sessionId,
+    }
   });
+
+  useEffect(() => {
+    // Define an async function inside the effect to handle the API call
+    const createAgentServerSession = async () => {
+      // Proceed only if we have a logged-in user and a session ID
+      if (user && sessionId && !loading) {
+        console.log(
+          `User ${user.id} is logged in with session ${sessionId}. Creating agent chat session.`
+        );
+
+        const agentServerUrlBase = process.env.NEXT_PUBLIC_AGENT_SERVER_URL;
+
+        if (!agentServerUrlBase) {
+          console.error("FATAL: NEXT_PUBLIC_AGENT_SERVER_URL environment variable is not set.");
+          return; 
+        }
+
+
+        try {
+          const response = await fetch(`${agentServerUrlBase}/apps/${agentName}/users/${user.id}/sessions/${sessionId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: user.id,
+              sessionId: sessionId,
+              timestamp: new Date().toISOString(),
+            }),
+          });
+
+          if (!response.ok) {
+            console.error("Server notification failed:", await response.text());
+          } else {
+            console.log("Chat session ready.");
+          }
+        } catch (err) {
+          console.error("An error occurred while notifying the server:", err);
+        }
+      }
+    };
+
+    createAgentServerSession();
+  }, [user, sessionId, loading]); // Dependencies array: effect runs if these values change
 
   return (
     <ChatSection
