@@ -6,8 +6,6 @@ import {
   ChatMessage,
   ChatMessages,
   ChatSection,
-  toInlineAnnotation,
-  useChatCanvas,
   useChatUI,
 } from "@llamaindex/chat-ui";
 import { Message, useChat } from "@ai-sdk/react";
@@ -16,7 +14,8 @@ import { WikiCard } from "../components/custom-wiki";
 import { TableArtifactViewer } from "@/components/custom-table-artifact";
 import { useUser } from "@/contexts/userContext";
 import { useSession } from "@/contexts/sessionContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { ToolCallAnnotation, ToolResponseAnnotation } from "@/components/custom-tool-call";
 
 const initialMessages: Message[] = [
   {
@@ -78,7 +77,7 @@ function ChatExample() {
     // uncomment this to try table data example in app/api/chat/table_artifact_example/route.ts
     // api: "api/chat/table_artifact_example",
 
-    api: "/api/chat/adk", // use the advanced chat example
+    api: "/api/chat/adk", // use the adk chat example
 
     initialMessages,
     body:{
@@ -187,6 +186,8 @@ function CustomChatMessages() {
 
             {/* annotation components under the Markdown text */}
             <WeatherAnnotation />
+            <ToolCallAnnotation />
+            <ToolResponseAnnotation />
             {/* <TableAnnotation /> */}
             <ChatMessage.Content.Source />
           </ChatMessage.Content>
