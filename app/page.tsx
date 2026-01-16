@@ -77,7 +77,8 @@ function ChatExample() {
     // uncomment this to try table data example in app/api/chat/table_artifact_example/route.ts
     // api: "api/chat/table_artifact_example",
 
-    api: "/api/chat/adk", // use the adk chat example
+    // api: "/api/chat/adk", // use the adk chat example
+    api: "/api/chat/openai", // use the adk chat example
 
     initialMessages,
     body:{
@@ -134,7 +135,7 @@ function ChatExample() {
       handler={handler}
       className="block h-full flex-row gap-4 p-0 md:flex md:p-5"
     >
-      <div className="md:max-w-1/2 mx-auto flex h-full min-w-0 max-w-full flex-1 flex-col gap-4">
+      <div className="md:max-w-2/3 mx-auto flex h-full min-w-0 max-w-full flex-1 flex-col gap-4">
         <ChatMessages>
           <ChatMessages.List className="px-4 py-6">
             <CustomChatMessages />
@@ -180,7 +181,7 @@ function CustomChatMessages() {
               annotationRenderers={{
                 // these annotations are rendered inline with the Markdown text
                 artifact: ChatCanvas.Artifact,
-                wiki: WikiCard,
+                wiki: WikiCard
               }}
             />
 
