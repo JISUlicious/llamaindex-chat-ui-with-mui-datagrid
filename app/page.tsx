@@ -14,7 +14,7 @@ import { WikiCard } from "../components/custom-wiki";
 import { TableArtifactViewer } from "@/components/custom-table-artifact";
 import { useUser } from "@/contexts/userContext";
 import { useSession } from "@/contexts/sessionContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ToolCallAnnotation, ToolResponseAnnotation } from "@/components/custom-tool-call";
 
 const initialMessages: Message[] = [
@@ -27,6 +27,8 @@ const initialMessages: Message[] = [
 
 export default function Page(): JSX.Element {
   const {removeSessionId} = useSession();
+  const [streamEnabled, setStreamEnabled] = useState(true);
+
   return (
     <div className="flex h-screen flex-col">
       <header className="w-full border-b p-4 text-center">
@@ -36,28 +38,39 @@ export default function Page(): JSX.Element {
         <p className="text-gray-600">
           A simple chat interface using @llamaindex/chat-ui
         </p>
-        <button
-          className="mt-2 rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600"
-          onClick={() => {
-            removeSessionId();
-            console.log("Session ID removed. Please refresh the page.");
-          }}
-        >
-          Remove Session ID
-        </button>
+        <div className="mt-2 flex items-center justify-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={streamEnabled}
+              onChange={(e) => setStreamEnabled(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <span className="text-sm">Stream Response</span>
+          </label>
+          <button
+            className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+            onClick={() => {
+              removeSessionId();
+              console.log("Session ID removed. Please refresh the page.");
+            }}
+          >
+            Remove Session ID
+          </button>
+        </div>
       </header>
       <div className="min-h-0 flex-1">
-        <ChatExample />
+        <ChatExample streamEnabled={streamEnabled} />
       </div>
     </div>
   );
 }
 
-function ChatExample() {
+function ChatExample({ streamEnabled }: { streamEnabled: boolean }) {
   const agentName = process.env.NEXT_PUBLIC_AGENT_NAME;
   if (!agentName) {
     console.error("FATAL: NEXT_PUBLIC_AGENT_NAME environment variable is not set.");
-    return; 
+    return;
   }
 
   const { user } = useUser();
@@ -78,13 +91,14 @@ function ChatExample() {
     // api: "api/chat/table_artifact_example",
 
     // api: "/api/chat/adk", // use the adk chat example
-    api: "/api/chat/openai", // use the adk chat example
+    api: "/api/chat/openai", // use the openai chat example
 
     initialMessages,
     body:{
       appName: agentName,
       userId: user?.id,
       sessionId: sessionId,
+      stream: streamEnabled,
     }
   });
 

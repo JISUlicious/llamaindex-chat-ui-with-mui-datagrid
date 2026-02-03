@@ -1,9 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const INLINE_ANNOTATION_KEY = 'annotation'
-const TEXT_PREFIX = '0:' // vercel ai text prefix
-const ANNOTATION_PREFIX = '8:' // vercel ai annotation prefix
+const TEXT_PREFIX = '0:'; // vercel ai text prefix
+const ANNOTATION_PREFIX = '8:'; // vercel ai annotation prefix
 
 export const dynamic = 'force-dynamic';
 
@@ -14,10 +13,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { appName, messages, userId, sessionId } = await request.json();
+    const { appName, messages, userId, sessionId, stream = true } = await request.json();
     const lastMessage = messages.at(-1);
+    const messageText = lastMessage.content || lastMessage.parts?.[0]?.text || '';
+
+    // Determine endpoint based on stream mode
+    const endpoint = stream ? '/run_sse' : '/run';
+
     // 1. Call agent backend
-    const backendResponse = await fetch(`${agentServerUrlBase}/run_sse`, {
+    const backendResponse = await fetch(`${agentServerUrlBase}${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -26,15 +30,52 @@ export async function POST(request: NextRequest) {
         sessionId: sessionId,
         new_message: {
           role: 'user',
-          parts: [{ text: lastMessage.parts[0].text }],
+          parts: [{ text: messageText }],
         },
+        streaming: stream
       }),
     });
+
+    // Handle non-streaming response
+    if (!stream) {
+      const data = await backendResponse.json();
+      const encoder = new TextEncoder();
+      let responseText = '';
+
+      // Extract text from ADK response format
+      const parts = data.content?.parts || [];
+      for (const part of parts) {
+        if (part.text) {
+          responseText += part.text;
+        }
+      }
+
+      const formattedResponse = `${TEXT_PREFIX}${JSON.stringify(responseText)}\n`;
+
+      // Also send any function calls/responses as annotations
+      let annotationChunks = '';
+      for (const part of parts) {
+        if (part.functionCall) {
+          const annotationPayload = { type: 'functionCall', data: part.functionCall };
+          annotationChunks += `${ANNOTATION_PREFIX}${JSON.stringify([annotationPayload])}\n`;
+        } else if (part.functionResponse) {
+          const annotationPayload = { type: 'functionResponse', data: part.functionResponse };
+          annotationChunks += `${ANNOTATION_PREFIX}${JSON.stringify([annotationPayload])}\n`;
+        }
+      }
+
+      return new Response(encoder.encode(formattedResponse + annotationChunks), {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'X-Vercel-AI-Data-Stream': 'v1',
+        },
+      });
+    }
 
     if (!backendResponse.body) {
       throw new Error("The backend response does not contain a body.");
     }
-    
+
     // 2. Create the transform stream and pipe the backend response through it
     const aiSdkStream = backendResponse.body.pipeThrough(createAiSdkTransformStream());
 
@@ -52,10 +93,6 @@ export async function POST(request: NextRequest) {
     const detail = (error as Error).message;
     return NextResponse.json({ detail }, { status: 500 });
   }
-}
-
-function toInlineAnnotationCode(item: any) {
-  return `\n\`\`\`${INLINE_ANNOTATION_KEY}\n${JSON.stringify(item)}\n\`\`\`\n`
 }
 
 /**
@@ -78,6 +115,9 @@ function createAiSdkTransformStream() {
       for (const line of lines) {
         const jsonString = line.substring(6).trim();
         if (!jsonString) continue;
+
+        // Skip [DONE] marker
+        if (jsonString === '[DONE]') continue;
 
         console.log('RAW SSE JSON from backend:', jsonString);
 

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { messages, temperature, max_tokens } = await request.json();
+    const { messages, temperature, max_tokens, stream = true } = await request.json();
 
     // Transform messages to OpenAI format
     const openaiMessages = messages.map((msg: { role: string; content: string; parts?: { text: string }[] }) => ({
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model,
         messages: openaiMessages,
-        stream: true,
+        stream,
         temperature: temperature ?? 0.7,
         max_tokens: max_tokens ?? 4096,
       }),
@@ -62,6 +62,50 @@ export async function POST(request: NextRequest) {
         { detail: `OpenAI API error: ${response.status} - ${errorText}` },
         { status: response.status }
       );
+    }
+
+    // Handle non-streaming response
+    if (!stream) {
+      const data = await response.json();
+      const message = data.choices?.[0]?.message;
+      const content = message?.content || '';
+      const encoder = new TextEncoder();
+
+      let responseChunks = '';
+
+      // Add text content
+      if (content) {
+        responseChunks += `${TEXT_PREFIX}${JSON.stringify(content)}\n`;
+      }
+
+      // Handle tool calls in non-streaming response
+      if (message?.tool_calls) {
+        for (const toolCall of message.tool_calls) {
+          let parsedArgs: object = {};
+          try {
+            parsedArgs = JSON.parse(toolCall.function?.arguments || '{}');
+          } catch {
+            // Keep as empty object if parsing fails
+          }
+
+          const annotationPayload = {
+            type: 'functionCall',
+            data: {
+              id: toolCall.id,
+              name: toolCall.function?.name,
+              args: parsedArgs,
+            },
+          };
+          responseChunks += `${ANNOTATION_PREFIX}${JSON.stringify([annotationPayload])}\n`;
+        }
+      }
+
+      return new Response(encoder.encode(responseChunks), {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'X-Vercel-AI-Data-Stream': 'v1',
+        },
+      });
     }
 
     if (!response.body) {
@@ -95,11 +139,44 @@ export async function POST(request: NextRequest) {
  *
  * Vercel AI SDK format:
  *   0:"Hello"
+ *
+ * Note: OpenAI streams tool calls in chunks - name comes first, then arguments are streamed.
+ * We accumulate tool call data and emit annotations when the stream ends.
  */
 function createOpenAIToAiSdkTransformStream() {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = '';
+
+  // Accumulator for tool calls (OpenAI streams them in pieces)
+  const toolCallAccumulator: Record<number, { id: string; name: string; arguments: string }> = {};
+
+  const emitToolCalls = (controller: TransformStreamDefaultController) => {
+    const indices = Object.keys(toolCallAccumulator).map(Number);
+    for (const index of indices) {
+      const toolCall = toolCallAccumulator[index];
+      if (toolCall.name) {
+        let parsedArgs: object = {};
+        try {
+          parsedArgs = JSON.parse(toolCall.arguments || '{}');
+        } catch {
+          // Keep as empty object if parsing fails
+        }
+
+        const annotationPayload = {
+          type: 'functionCall',
+          data: {
+            id: toolCall.id,
+            name: toolCall.name,
+            args: parsedArgs,
+          },
+        };
+        const formattedChunk = `${ANNOTATION_PREFIX}${JSON.stringify([annotationPayload])}\n`;
+        controller.enqueue(encoder.encode(formattedChunk));
+      }
+      delete toolCallAccumulator[index];
+    }
+  };
 
   return new TransformStream({
     async transform(chunk, controller) {
@@ -125,36 +202,47 @@ function createOpenAIToAiSdkTransformStream() {
 
         const dataContent = trimmedLine.slice(5).trim();
 
-        // Handle stream end
+        // Handle stream end - emit accumulated tool calls
         if (dataContent === '[DONE]') {
+          emitToolCalls(controller);
           continue;
         }
 
         try {
           const parsed = JSON.parse(dataContent);
-          const delta = parsed.choices?.[0]?.delta;
+          const choice = parsed.choices?.[0];
+          const delta = choice?.delta;
+          const finishReason = choice?.finish_reason;
 
           if (delta?.content) {
             const formattedChunk = `${TEXT_PREFIX}${JSON.stringify(delta.content)}\n`;
             controller.enqueue(encoder.encode(formattedChunk));
           }
 
-          // Handle function/tool calls if present
+          // Accumulate tool calls (they come in chunks)
           if (delta?.tool_calls) {
             for (const toolCall of delta.tool_calls) {
-              if (toolCall.function) {
-                const annotationPayload = {
-                  type: 'functionCall',
-                  data: {
-                    name: toolCall.function.name,
-                    args: toolCall.function.arguments,
-                    id: toolCall.id,
-                  },
-                };
-                const formattedChunk = `${ANNOTATION_PREFIX}${JSON.stringify([annotationPayload])}\n`;
-                controller.enqueue(encoder.encode(formattedChunk));
+              const index = toolCall.index ?? 0;
+              if (!toolCallAccumulator[index]) {
+                toolCallAccumulator[index] = { id: '', name: '', arguments: '' };
+              }
+              const existing = toolCallAccumulator[index];
+
+              if (toolCall.id) {
+                existing.id = toolCall.id;
+              }
+              if (toolCall.function?.name) {
+                existing.name = toolCall.function.name;
+              }
+              if (toolCall.function?.arguments) {
+                existing.arguments += toolCall.function.arguments;
               }
             }
+          }
+
+          // Emit tool calls when finish_reason is 'tool_calls'
+          if (finishReason === 'tool_calls') {
+            emitToolCalls(controller);
           }
         } catch (e) {
           // Skip invalid JSON lines (common in SSE streams)
@@ -183,6 +271,9 @@ function createOpenAIToAiSdkTransformStream() {
           }
         }
       }
+
+      // Emit any remaining accumulated tool calls
+      emitToolCalls(controller);
     },
   });
 }
