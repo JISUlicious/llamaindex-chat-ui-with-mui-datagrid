@@ -15,7 +15,7 @@ import { TableArtifactViewer } from "@/components/custom-table-artifact";
 import { useUser } from "@/contexts/userContext";
 import { useSession } from "@/contexts/sessionContext";
 import { useEffect, useState } from "react";
-import { ToolCallAnnotation, ToolResponseAnnotation } from "@/components/custom-tool-call";
+import { ToolCallAnnotation, ToolResponseAnnotation, ThinkingAnnotation } from "@/components/custom-tool-call";
 
 const initialMessages: Message[] = [
   {
@@ -90,8 +90,8 @@ function ChatExample({ streamEnabled }: { streamEnabled: boolean }) {
     // uncomment this to try table data example in app/api/chat/table_artifact_example/route.ts
     // api: "api/chat/table_artifact_example",
 
-    // api: "/api/chat/adk", // use the adk chat example
-    api: "/api/chat/openai", // use the openai chat example
+    api: "/api/chat/adk", // use the adk chat example
+    // api: "/api/chat/openai", // use the openai chat example
 
     initialMessages,
     body:{
@@ -201,6 +201,7 @@ function CustomChatMessages() {
 
             {/* annotation components under the Markdown text */}
             <WeatherAnnotation />
+            <ThinkingAnnotation />
             <ToolCallAnnotation />
             <ToolResponseAnnotation />
             {/* <TableAnnotation /> */}
